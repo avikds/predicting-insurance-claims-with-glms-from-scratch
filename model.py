@@ -283,3 +283,29 @@ def claims_summary(claim_nb, exposure):
         "histogram": histogram
     }
 
+# Step 6 - quantile_bin_edges
+def quantile_bin_edges(x, n_bins):
+    # Convert the input into a NumPy floating-point array.
+    x = np.asarray(x, dtype=float)
+
+    # Calculate the interior quantile probabilities.
+    quantiles = np.linspace(0, 1, n_bins + 1)[1:-1]
+
+    # Compute the quantile edges.
+    edges = np.quantile(x, quantiles).astype(float)
+
+    # Remove duplicate edges and sort them.
+    edges = np.unique(edges)
+
+    # Remove edges equal to or below the minimum value.
+    edges = edges[edges > np.min(x)]
+
+    return edges
+
+
+def bin_codes(x, edges):
+    # Assign each value to its corresponding quantile bin.
+    # side="right" ensures that a value equal to an edge
+    # belongs to the bin immediately to its right.
+    return np.searchsorted(edges, x, side="right")
+
