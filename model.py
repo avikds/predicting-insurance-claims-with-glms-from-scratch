@@ -366,3 +366,65 @@ def fit_preprocessor(data, n_bins=10):
         "scale": scale
     }
 
+# Step 9 - transform
+def transform(data, prep):
+    # Store the individual feature blocks.
+    blocks = []
+
+    # 1. One-hot encode categorical features.
+    # Use the category levels learned from the training dataset.
+    for col in CATEGORICAL:
+        encoded = one_hot(
+            data[col],
+            prep["levels"][col]
+        )
+        blocks.append(encoded)
+
+    # 2. Quantile-bin and one-hot encode age features.
+    for col in BINNED:
+        edges = prep["edges"][col]
+
+        # Assign each observation to its quantile bin.
+        codes = bin_codes(data[col], edges)
+
+        # Create a fixed list of bin levels.
+        levels = list(range(len(edges) + 1))
+
+        # One-hot encode the bin assignments.
+        encoded = one_hot(codes, levels)
+        blocks.append(encoded)
+
+    # 3. Standardize BonusMalus using training statistics.
+    bm_mean, bm_std = prep["scale"]["BonusMalus"]
+
+    bonus_malus = np.asarray(
+        data["BonusMalus"],
+        dtype=float
+    )
+
+    standardized_bm = (
+        (bonus_malus - bm_mean) / bm_std
+    ).reshape(-1, 1)
+
+    blocks.append(standardized_bm)
+
+    # 4. Log-transform and standardize Density.
+    density = np.asarray(
+        data["Density"],
+        dtype=float
+    )
+
+    log_density = np.log(density)
+
+    ld_mean, ld_std = prep["scale"]["LogDensity"]
+
+    standardized_density = (
+        (log_density - ld_mean) / ld_std
+    ).reshape(-1, 1)
+
+    blocks.append(standardized_density)
+
+    # Concatenate all feature blocks column-wise.
+    # Return a floating-point design matrix without an intercept.
+    return np.concatenate(blocks, axis=1).astype(float)
+

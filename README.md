@@ -18,6 +18,7 @@ python scaffold.py
 - [x] **6.** quantile_bin_edges
 - [x] **7.** one_hot
 - [x] **8.** fit_preprocessor
+- [x] **9.** transform
 
 ---
 
