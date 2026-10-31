@@ -1032,3 +1032,68 @@ def lorenz_gini(pred, claims, exposure):
     # Return cumulative exposure, cumulative claims and Gini index.
     return cum_exposure, cum_claims, gini
 
+# Step 21 - count_distribution
+def count_distribution(mu, k_max):
+    # Convert expected claim counts into a floating-point array.
+    mu = np.asarray(mu, dtype=float).reshape(-1)
+
+    # Validate the inputs.
+    if np.any(mu < 0):
+        raise ValueError("Poisson means must be non-negative.")
+
+    if k_max < 0:
+        raise ValueError("k_max must be non-negative.")
+
+    # Initialize the output array.
+    # The final entry represents policies with k_max or more claims.
+    result = np.zeros(k_max + 1, dtype=float)
+
+    # Calculate the probability of zero claims for each policy.
+    p = np.exp(-mu)
+
+    # Track cumulative probabilities for claim counts below k_max.
+    cumulative_prob = np.zeros_like(mu)
+
+    # Calculate Poisson probabilities using the recurrence:
+    # p_0 = exp(-mu)
+    # p_k = p_(k-1) * mu / k
+    for k in range(k_max):
+        # Sum the probabilities of exactly k claims across policies.
+        result[k] = np.sum(p)
+
+        # Accumulate probabilities for the tail calculation.
+        cumulative_prob += p
+
+        # Calculate the probability of exactly k+1 claims.
+        p = p * mu / (k + 1)
+
+    # Calculate the expected number of policies with k_max
+    # or more claims (the remaining probability mass).
+    tail_prob = np.maximum(1.0 - cumulative_prob, 0.0)
+
+    result[k_max] = np.sum(tail_prob)
+
+    return result
+
+
+def pearson_dispersion(counts, mu, n_params):
+    # Convert inputs into floating-point NumPy arrays.
+    counts = np.asarray(counts, dtype=float).reshape(-1)
+    mu = np.asarray(mu, dtype=float).reshape(-1)
+
+    # Validate predicted Poisson means.
+    if np.any(mu <= 0):
+        raise ValueError("Expected claim counts must be positive.")
+
+    # Calculate residual degrees of freedom.
+    df = len(counts) - n_params
+
+    if df <= 0:
+        raise ValueError("Residual degrees of freedom must be positive.")
+
+    # Calculate the Pearson chi-squared statistic.
+    pearson_stat = np.sum((counts - mu) ** 2 / mu)
+
+    # Return Pearson dispersion as a Python float.
+    return float(pearson_stat / df)
+
