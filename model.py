@@ -1284,3 +1284,100 @@ def tweedie_deviance(y, mu, power, sample_weight=None):
         np.sum(weights * unit_deviance) / weight_sum
     )
 
+# Step 25 - pure_premium_report
+def pure_premium_report(train, test, freq_model, prep, alpha=1e-4, power=1.9):
+    # 1. Transform training and test portfolios using the fitted preprocessor.
+    X_tr = transform(train, prep)
+    X_te = transform(test, prep)
+
+    # Extract training claim counts and claim amounts.
+    train_claims = np.asarray(train["ClaimNb"], dtype=float)
+    train_amount = np.asarray(train["ClaimAmount"], dtype=float)
+
+    # Extract test claim counts, claim amounts and exposure.
+    test_amount = np.asarray(test["ClaimAmount"], dtype=float)
+    test_exposure = np.asarray(test["Exposure"], dtype=float)
+
+    # Extract training exposure.
+    train_exposure = np.asarray(train["Exposure"], dtype=float)
+
+    # 2. Fit the severity model using only policies with at least one claim.
+    has_claims = train_claims > 0
+
+    # Calculate average claim severity for each claiming policy.
+    avg_severity = (
+        train_amount[has_claims] / train_claims[has_claims]
+    )
+
+    # Fit the Gamma GLM using claim counts as observation weights.
+    severity_model = fit_gamma_glm(
+        X_tr[has_claims],
+        avg_severity,
+        train_claims[has_claims],
+        alpha
+    )
+
+    # 3. Predict annual claim frequency using the fitted frequency model.
+    pred_frequency = predict(freq_model, X_te)
+
+    # Predict average claim severity using the fitted Gamma GLM.
+    pred_severity = predict(severity_model, X_te)
+
+    # Calculate the predicted pure premium (cost per policy-year).
+    premium = pred_frequency * pred_severity
+
+    # 4. Calculate the constant training pure premium.
+    # This is the total training claim cost per unit of exposure.
+    flat_premium = float(
+        np.sum(train_amount) / np.sum(train_exposure)
+    )
+
+    # Calculate observed pure premium for each test policy.
+    observed = test_amount / test_exposure
+
+    # Calculate total predicted claim losses.
+    pred_losses = float(
+        np.sum(premium * test_exposure)
+    )
+
+    # Calculate total observed claim losses.
+    obs_losses = float(
+        np.sum(test_amount)
+    )
+
+    # Calculate exposure-weighted Tweedie deviance
+    # for the frequency-times-severity model.
+    tweedie_model = tweedie_deviance(
+        observed,
+        premium,
+        power,
+        sample_weight=test_exposure
+    )
+
+    # Calculate exposure-weighted Tweedie deviance
+    # for the constant pure-premium baseline.
+    tweedie_flat = tweedie_deviance(
+        observed,
+        flat_premium,
+        power,
+        sample_weight=test_exposure
+    )
+
+    # 5. Calculate the Gini index using predicted pure premium
+    # to rank policies by risk and observed claim amounts as losses.
+    _, _, gini = lorenz_gini(
+        premium,
+        test_amount,
+        test_exposure
+    )
+
+    # Return the complete pure-premium report.
+    return {
+        "severity_model": severity_model,
+        "pred_losses": float(pred_losses),
+        "obs_losses": float(obs_losses),
+        "tweedie_model": float(tweedie_model),
+        "tweedie_flat": float(tweedie_flat),
+        "gini": float(gini)
+    }
+
