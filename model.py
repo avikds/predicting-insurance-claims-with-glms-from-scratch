@@ -923,3 +923,62 @@ def compare_models(train, test, alpha_ridge=1e-6, alpha_glm=1e-6):
     # Return evaluation results, fitted models and preprocessor.
     return table, models, prep
 
+# Step 19 - calibration_curve
+def calibration_curve(pred, freq, exposure, n_bins=10):
+    # Convert inputs into floating-point NumPy arrays.
+    pred = np.asarray(pred, dtype=float)
+    freq = np.asarray(freq, dtype=float)
+    exposure = np.asarray(exposure, dtype=float)
+
+    # Calculate total exposure.
+    total_exposure = np.sum(exposure)
+
+    # 1. Sort policies by predicted frequency.
+    # Stable sorting preserves the original order of tied predictions.
+    order = np.argsort(pred, kind="stable")
+
+    sorted_pred = pred[order]
+    sorted_freq = freq[order]
+    sorted_exposure = exposure[order]
+
+    # 2. Calculate cumulative exposure shares.
+    cum = np.cumsum(sorted_exposure) / total_exposure
+
+    # 3. Assign policies to exposure-equal bins.
+    # Using ceil(cum * n_bins) - 1 implements the intervals
+    # (b / n_bins, (b + 1) / n_bins] correctly.
+    bin_idx = np.ceil(cum * n_bins).astype(int) - 1
+
+    # Keep bin indices within the valid range.
+    bin_idx = np.clip(bin_idx, 0, n_bins - 1)
+
+    # Initialize output arrays.
+    mean_pred = np.empty(n_bins, dtype=float)
+    mean_obs = np.empty(n_bins, dtype=float)
+    weight = np.empty(n_bins, dtype=float)
+
+    # 4. Calculate exposure-weighted statistics for each bin.
+    for b in range(n_bins):
+        mask = bin_idx == b
+
+        # Total exposure within the current bin.
+        bin_exposure = np.sum(sorted_exposure[mask])
+
+        # Exposure-weighted mean predicted frequency.
+        mean_pred[b] = (
+            np.sum(sorted_pred[mask] * sorted_exposure[mask])
+            / bin_exposure
+        )
+
+        # Exposure-weighted mean observed frequency.
+        mean_obs[b] = (
+            np.sum(sorted_freq[mask] * sorted_exposure[mask])
+            / bin_exposure
+        )
+
+        # Fraction of total portfolio exposure in this bin.
+        weight[b] = bin_exposure / total_exposure
+
+    # Return the three arrays.
+    return mean_pred, mean_obs, weight
+
