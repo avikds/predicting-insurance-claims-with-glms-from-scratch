@@ -23,6 +23,7 @@ python scaffold.py
 - [x] **11.** evaluate
 - [x] **12.** fit_dummy
 - [x] **13.** fit_ridge
+- [x] **14.** poisson_objective
 
 ---
 

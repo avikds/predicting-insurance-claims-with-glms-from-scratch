@@ -629,3 +629,57 @@ def fit_ridge(X, y, sample_weight, alpha):
         "link": "identity"
     }
 
+# Step 14 - poisson_objective
+def poisson_objective(params, X, counts, exposure, alpha):
+    # Convert inputs into floating-point NumPy arrays.
+    params = np.asarray(params, dtype=float)
+    X = np.asarray(X, dtype=float)
+    counts = np.asarray(counts, dtype=float)
+    exposure = np.asarray(exposure, dtype=float)
+
+    # Total exposure across all policies.
+    E = np.sum(exposure)
+
+    # Construct the augmented design matrix with an intercept.
+    # The first column consists entirely of ones.
+    X_tilde = np.column_stack([
+        np.ones(X.shape[0]),
+        X
+    ])
+
+    # Calculate the linear predictor with the exposure offset.
+    eta = X_tilde @ params + np.log(exposure)
+
+    # Apply the exponential link function.
+    mu = np.exp(eta)
+
+    # Create the penalty matrix.
+    # The intercept is not penalized.
+    p = X.shape[1]
+    P = alpha * np.diag(np.r_[0.0, np.ones(p)])
+
+    # 1. Calculate the penalized Poisson negative log-likelihood.
+    objective = (
+        np.sum(mu - counts * eta) / E
+        + (alpha / 2.0) * np.sum(params[1:] ** 2)
+    )
+
+    # 2. Calculate the gradient.
+    gradient = (
+        X_tilde.T @ (mu - counts) / E
+        + P @ params
+    )
+
+    # 3. Calculate the Hessian.
+    hessian = (
+        X_tilde.T @ (mu[:, None] * X_tilde) / E
+        + P
+    )
+
+    # Return the objective, gradient and Hessian.
+    return (
+        float(objective),
+        gradient,
+        hessian
+    )
+
