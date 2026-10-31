@@ -322,3 +322,47 @@ def one_hot(values, levels):
     # Convert Boolean values into floating-point 1.0 and 0.0.
     return encoded.astype(float)
 
+# Step 8 - fit_preprocessor
+CATEGORICAL = ["VehBrand", "VehPower", "VehGas", "Region", "Area"]
+BINNED = ["VehAge", "DrivAge"]
+
+
+def fit_preprocessor(data, n_bins=10):
+    # Learn sorted unique categorical levels from the training data.
+    levels = {
+        col: np.unique(data[col]).tolist()
+        for col in CATEGORICAL
+    }
+
+    # Calculate quantile bin edges for continuous age features.
+    edges = {
+        col: quantile_bin_edges(data[col], n_bins)
+        for col in BINNED
+    }
+
+    # Convert numerical features to floating-point arrays.
+    bonus_malus = np.asarray(data["BonusMalus"], dtype=float)
+    density = np.asarray(data["Density"], dtype=float)
+
+    # Apply the natural logarithm to population density.
+    log_density = np.log(density)
+
+    # Calculate means and population standard deviations (ddof=0).
+    scale = {
+        "BonusMalus": (
+            float(np.mean(bonus_malus)),
+            float(np.std(bonus_malus, ddof=0))
+        ),
+        "LogDensity": (
+            float(np.mean(log_density)),
+            float(np.std(log_density, ddof=0))
+        )
+    }
+
+    # Return all learned preprocessing parameters.
+    return {
+        "levels": levels,
+        "edges": edges,
+        "scale": scale
+    }
+

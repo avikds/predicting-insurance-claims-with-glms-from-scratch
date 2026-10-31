@@ -17,6 +17,7 @@ python scaffold.py
 - [x] **5.** claims_summary
 - [x] **6.** quantile_bin_edges
 - [x] **7.** one_hot
+- [x] **8.** fit_preprocessor
 
 ---
 
