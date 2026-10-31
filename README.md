@@ -32,6 +32,7 @@ python scaffold.py
 - [x] **20.** lorenz_gini
 - [x] **21.** count_distribution
 - [x] **22.** simulate_claim_amounts
+- [x] **23.** fit_gamma_glm
 
 ---
 

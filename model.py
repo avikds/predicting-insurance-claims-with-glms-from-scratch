@@ -1151,3 +1151,73 @@ def simulate_claim_amounts(policies, claim_nb, seed, shape=2.0):
     # Return the total claim cost for every policy.
     return total_cost
 
+# Step 23 - fit_gamma_glm
+def fit_gamma_glm(X, avg_severity, n_claims, alpha, max_iter=50, tol=1e-8):
+    # Convert inputs into floating-point NumPy arrays.
+    X = np.asarray(X, dtype=float)
+    avg_severity = np.asarray(avg_severity, dtype=float).reshape(-1)
+    n_claims = np.asarray(n_claims, dtype=float).reshape(-1)
+
+    # Construct the augmented design matrix with an intercept.
+    X_tilde = np.column_stack([
+        np.ones(X.shape[0]),
+        X
+    ])
+
+    # Calculate total claim-count weight.
+    V = np.sum(n_claims)
+
+    # Initialize all coefficients to zero.
+    params = np.zeros(X.shape[1] + 1, dtype=float)
+
+    # Initialize the intercept using the weighted mean severity.
+    params[0] = np.log(
+        np.sum(n_claims * avg_severity) / V
+    )
+
+    # Construct the penalty matrix.
+    # The intercept is not penalized.
+    p = X.shape[1]
+    P = alpha * np.diag(np.r_[0.0, np.ones(p)])
+
+    # Perform Fisher scoring iterations.
+    for _ in range(max_iter):
+
+        # Calculate the linear predictor.
+        eta = X_tilde @ params
+
+        # Calculate predicted mean severity using the log link.
+        mu = np.exp(eta)
+
+        # Calculate the working response.
+        z = eta + (avg_severity - mu) / mu
+
+        # Construct the weighted least-squares system.
+        lhs = (
+            X_tilde.T @ (n_claims[:, None] * X_tilde) / V
+            + P
+        )
+
+        rhs = (
+            X_tilde.T @ (n_claims * z) / V
+        )
+
+        # Solve for the updated parameter vector.
+        new_params = np.linalg.solve(lhs, rhs)
+
+        # Check convergence after the parameter update.
+        converged = np.max(np.abs(new_params - params)) < tol
+
+        # Accept the updated parameters.
+        params = new_params
+
+        if converged:
+            break
+
+    # Return the fitted Gamma GLM.
+    return {
+        "intercept": float(params[0]),
+        "coef": params[1:],
+        "link": "log"
+    }
+
