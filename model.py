@@ -683,3 +683,49 @@ def poisson_objective(params, X, counts, exposure, alpha):
         hessian
     )
 
+# Step 15 - irls_step
+def irls_step(params, X, counts, exposure, alpha):
+    # Convert inputs into floating-point NumPy arrays.
+    params = np.asarray(params, dtype=float)
+    X = np.asarray(X, dtype=float)
+    counts = np.asarray(counts, dtype=float)
+    exposure = np.asarray(exposure, dtype=float)
+
+    # Construct the augmented design matrix with an intercept.
+    X_tilde = np.column_stack([
+        np.ones(X.shape[0]),
+        X
+    ])
+
+    # Calculate the linear predictor without the exposure offset.
+    s = X_tilde @ params
+
+    # Calculate the expected claim counts using the exposure offset.
+    mu = exposure * np.exp(s)
+
+    # Calculate the IRLS working response.
+    z = s + (counts - mu) / mu
+
+    # Calculate total exposure.
+    E = np.sum(exposure)
+
+    # Construct the penalty matrix.
+    # The intercept is not penalized.
+    p = X.shape[1]
+    P = alpha * np.diag(np.r_[0.0, np.ones(p)])
+
+    # Construct the weighted least-squares left-hand side.
+    lhs = (
+        X_tilde.T @ (mu[:, None] * X_tilde) / E
+        + P
+    )
+
+    # Construct the weighted least-squares right-hand side.
+    rhs = X_tilde.T @ (mu * z) / E
+
+    # Solve the weighted least-squares system for new parameters.
+    new_params = np.linalg.solve(lhs, rhs)
+
+    # Return the updated parameter vector.
+    return new_params
+

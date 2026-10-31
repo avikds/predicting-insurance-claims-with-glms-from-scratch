@@ -24,6 +24,7 @@ python scaffold.py
 - [x] **12.** fit_dummy
 - [x] **13.** fit_ridge
 - [x] **14.** poisson_objective
+- [x] **15.** irls_step
 
 ---
 
