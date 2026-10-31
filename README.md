@@ -21,6 +21,7 @@ python scaffold.py
 - [x] **9.** transform
 - [x] **10.** poisson_deviance
 - [x] **11.** evaluate
+- [x] **12.** fit_dummy
 
 ---
 

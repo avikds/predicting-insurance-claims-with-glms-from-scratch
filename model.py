@@ -540,3 +540,48 @@ def evaluate(freq, pred, exposure):
         "obs_claims": obs_claims
     }
 
+# Step 12 - fit_dummy
+def fit_dummy(freq, exposure):
+    # Convert inputs into floating-point NumPy arrays.
+    freq = np.asarray(freq, dtype=float)
+    exposure = np.asarray(exposure, dtype=float)
+
+    # Calculate the exposure-weighted portfolio claim frequency.
+    intercept = float(
+        np.sum(freq * exposure) / np.sum(exposure)
+    )
+
+    # Return the constant-frequency model.
+    return {
+        "intercept": intercept,
+        "coef": None,
+        "link": "identity"
+    }
+
+
+def predict(model, X):
+    # Convert the design matrix into a NumPy array.
+    X = np.asarray(X, dtype=float)
+
+    # Calculate the linear predictor.
+    if model["coef"] is None:
+        # Constant model: use the intercept for every observation.
+        eta = np.full(
+            X.shape[0],
+            model["intercept"],
+            dtype=float
+        )
+    else:
+        # Regression model: intercept plus matrix multiplication.
+        eta = model["intercept"] + X @ model["coef"]
+
+    # Apply the specified link function.
+    if model["link"] == "identity":
+        return eta
+
+    elif model["link"] == "log":
+        return np.exp(eta)
+
+    else:
+        raise ValueError("Unsupported link function.")
+
