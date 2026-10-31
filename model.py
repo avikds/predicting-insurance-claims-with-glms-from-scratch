@@ -309,3 +309,16 @@ def bin_codes(x, edges):
     # belongs to the bin immediately to its right.
     return np.searchsorted(edges, x, side="right")
 
+# Step 7 - one_hot
+def one_hot(values, levels):
+    # Convert inputs into NumPy arrays.
+    values = np.asarray(values)
+    levels = np.asarray(levels)
+
+    # Compare every value against every possible level.
+    # The resulting Boolean matrix has shape (n, K).
+    encoded = values[:, None] == levels[None, :]
+
+    # Convert Boolean values into floating-point 1.0 and 0.0.
+    return encoded.astype(float)
+

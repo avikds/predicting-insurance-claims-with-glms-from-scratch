@@ -16,6 +16,7 @@ python scaffold.py
 - [x] **4.** train_test_split
 - [x] **5.** claims_summary
 - [x] **6.** quantile_bin_edges
+- [x] **7.** one_hot
 
 ---
 
