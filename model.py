@@ -982,3 +982,53 @@ def calibration_curve(pred, freq, exposure, n_bins=10):
     # Return the three arrays.
     return mean_pred, mean_obs, weight
 
+# Step 20 - lorenz_gini
+def lorenz_gini(pred, claims, exposure):
+    # Convert inputs into NumPy arrays.
+    pred = np.asarray(pred, dtype=float)
+    claims = np.asarray(claims, dtype=float)
+    exposure = np.asarray(exposure, dtype=float)
+
+    # 1. Sort policies by predicted risk in ascending order.
+    # Stable sorting preserves the original order of tied predictions.
+    order = np.argsort(pred, kind="stable")
+
+    sorted_claims = claims[order]
+    sorted_exposure = exposure[order]
+
+    # Calculate total exposure and total observed claims.
+    total_exposure = np.sum(sorted_exposure)
+    total_claims = np.sum(sorted_claims)
+
+    # Both totals must be positive to construct a valid Lorenz curve.
+    if total_exposure <= 0 or total_claims <= 0:
+        raise ValueError(
+            "Total exposure and total claims must be positive."
+        )
+
+    # 2. Calculate cumulative exposure shares, starting at zero.
+    cum_exposure = np.concatenate((
+        [0.0],
+        np.cumsum(sorted_exposure) / total_exposure
+    ))
+
+    # 3. Calculate cumulative claim shares, starting at zero.
+    cum_claims = np.concatenate((
+        [0.0],
+        np.cumsum(sorted_claims) / total_claims
+    ))
+
+    # 4. Calculate the area under the Lorenz curve
+    # using the trapezoidal rule.
+    area = np.sum(
+        np.diff(cum_exposure)
+        * (cum_claims[1:] + cum_claims[:-1])
+        / 2.0
+    )
+
+    # 5. Calculate the Gini index.
+    gini = float(1.0 - 2.0 * area)
+
+    # Return cumulative exposure, cumulative claims and Gini index.
+    return cum_exposure, cum_claims, gini
+

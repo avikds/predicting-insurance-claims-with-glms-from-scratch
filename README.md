@@ -29,6 +29,7 @@ python scaffold.py
 - [x] **17.** relativities
 - [x] **18.** compare_models
 - [x] **19.** calibration_curve
+- [x] **20.** lorenz_gini
 
 ---
 
