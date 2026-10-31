@@ -1097,3 +1097,57 @@ def pearson_dispersion(counts, mu, n_params):
     # Return Pearson dispersion as a Python float.
     return float(pearson_stat / df)
 
+# Step 22 - simulate_claim_amounts
+def simulate_claim_amounts(policies, claim_nb, seed, shape=2.0):
+    # Initialize the seeded random number generator.
+    rng = np.random.default_rng(seed)
+
+    # Convert inputs into NumPy arrays.
+    claim_nb = np.asarray(claim_nb, dtype=int)
+
+    veh_power = np.asarray(
+        policies["VehPower"], dtype=float
+    )
+
+    driv_age = np.asarray(
+        policies["DrivAge"], dtype=float
+    )
+
+    veh_gas = np.asarray(
+        policies["VehGas"]
+    )
+
+    # Calculate the logarithm of the mean claim severity
+    # for every policy.
+    log_m = (
+        np.log(1800.0)
+        + 0.04 * (veh_power - 6.0)
+        - 0.006 * (driv_age - 45.0)
+        + 0.15 * (veh_gas == "Diesel").astype(float)
+    )
+
+    # Convert log severity into mean severity.
+    mean_severity = np.exp(log_m)
+
+    # Initialize total claim amounts to zero.
+    total_cost = np.zeros(len(claim_nb), dtype=float)
+
+    # Generate claim amounts policy by policy,
+    # maintaining increasing policy index order.
+    for i in range(len(claim_nb)):
+        if claim_nb[i] > 0:
+            # Generate Gamma-distributed individual claim amounts.
+            # Shape = shape
+            # Scale = mean severity / shape
+            claim_amounts = rng.gamma(
+                shape,
+                mean_severity[i] / shape,
+                size=claim_nb[i]
+            )
+
+            # Store the total claim amount for this policy.
+            total_cost[i] = np.sum(claim_amounts)
+
+    # Return the total claim cost for every policy.
+    return total_cost
+

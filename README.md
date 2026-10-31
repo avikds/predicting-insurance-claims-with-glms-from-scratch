@@ -31,6 +31,7 @@ python scaffold.py
 - [x] **19.** calibration_curve
 - [x] **20.** lorenz_gini
 - [x] **21.** count_distribution
+- [x] **22.** simulate_claim_amounts
 
 ---
 
