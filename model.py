@@ -428,3 +428,58 @@ def transform(data, prep):
     # Return a floating-point design matrix without an intercept.
     return np.concatenate(blocks, axis=1).astype(float)
 
+# Step 10 - poisson_deviance
+def poisson_deviance(y, mu, sample_weight=None):
+    # Convert inputs to floating-point NumPy arrays.
+    y = np.asarray(y, dtype=float)
+    mu = np.asarray(mu, dtype=float)
+
+    # Support compatible broadcastable input shapes.
+    y, mu = np.broadcast_arrays(y, mu)
+
+    # Predicted Poisson means must be strictly positive.
+    if np.any(mu <= 0):
+        raise ValueError("Predicted means must be strictly positive.")
+
+    # Observed claim values must be non-negative.
+    if np.any(y < 0):
+        raise ValueError("Observed values must be non-negative.")
+
+    # Calculate y * log(y / mu).
+    # By convention, this term equals zero when y == 0.
+    log_term = np.zeros_like(y, dtype=float)
+
+    positive = y > 0
+
+    log_term[positive] = (
+        y[positive] * np.log(y[positive] / mu[positive])
+    )
+
+    # Calculate the unit Poisson deviance.
+    unit_deviance = 2.0 * (
+        log_term - y + mu
+    )
+
+    # Use equal weights when sample_weight is None.
+    if sample_weight is None:
+        weights = np.ones_like(unit_deviance, dtype=float)
+    else:
+        weights = np.broadcast_to(
+            np.asarray(sample_weight, dtype=float),
+            unit_deviance.shape
+        )
+
+    # Validate the sample weights.
+    if np.any(weights < 0):
+        raise ValueError("Sample weights must be non-negative.")
+
+    weight_sum = np.sum(weights)
+
+    if weight_sum <= 0:
+        raise ValueError("The sum of sample weights must be positive.")
+
+    # Return the weighted mean Poisson deviance as a Python float.
+    return float(
+        np.sum(weights * unit_deviance) / weight_sum
+    )
+

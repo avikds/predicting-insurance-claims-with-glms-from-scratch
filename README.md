@@ -19,6 +19,7 @@ python scaffold.py
 - [x] **7.** one_hot
 - [x] **8.** fit_preprocessor
 - [x] **9.** transform
+- [x] **10.** poisson_deviance
 
 ---
 
