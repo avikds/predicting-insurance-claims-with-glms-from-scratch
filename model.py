@@ -1221,3 +1221,66 @@ def fit_gamma_glm(X, avg_severity, n_claims, alpha, max_iter=50, tol=1e-8):
         "link": "log"
     }
 
+# Step 24 - tweedie_deviance
+def tweedie_deviance(y, mu, power, sample_weight=None):
+    # Validate the Tweedie power parameter.
+    if not 1.0 < power < 2.0:
+        raise ValueError("Power must be strictly between 1 and 2.")
+
+    # Convert inputs into floating-point NumPy arrays.
+    y = np.asarray(y, dtype=float)
+    mu = np.asarray(mu, dtype=float)
+
+    # Support compatible broadcastable input shapes.
+    y, mu = np.broadcast_arrays(y, mu)
+
+    # Predicted means must be strictly positive.
+    if np.any(mu <= 0):
+        raise ValueError("Predicted means must be strictly positive.")
+
+    # Observed values must be non-negative.
+    if np.any(y < 0):
+        raise ValueError("Observed values must be non-negative.")
+
+    # Calculate the three terms of the Tweedie unit deviance.
+    term1 = (
+        np.power(y, 2.0 - power)
+        / ((1.0 - power) * (2.0 - power))
+    )
+
+    term2 = (
+        y * np.power(mu, 1.0 - power)
+        / (1.0 - power)
+    )
+
+    term3 = (
+        np.power(mu, 2.0 - power)
+        / (2.0 - power)
+    )
+
+    # Calculate the unit Tweedie deviance.
+    unit_deviance = 2.0 * (term1 - term2 + term3)
+
+    # Use equal weights when sample_weight is None.
+    if sample_weight is None:
+        weights = np.ones_like(unit_deviance, dtype=float)
+    else:
+        weights = np.broadcast_to(
+            np.asarray(sample_weight, dtype=float),
+            unit_deviance.shape
+        )
+
+    # Validate sample weights.
+    if np.any(weights < 0):
+        raise ValueError("Sample weights must be non-negative.")
+
+    weight_sum = np.sum(weights)
+
+    if weight_sum <= 0:
+        raise ValueError("The sum of sample weights must be positive.")
+
+    # Calculate the weighted mean Tweedie deviance.
+    return float(
+        np.sum(weights * unit_deviance) / weight_sum
+    )
+

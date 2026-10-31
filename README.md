@@ -33,6 +33,7 @@ python scaffold.py
 - [x] **21.** count_distribution
 - [x] **22.** simulate_claim_amounts
 - [x] **23.** fit_gamma_glm
+- [x] **24.** tweedie_deviance
 
 ---
 
