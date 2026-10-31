@@ -208,3 +208,35 @@ def make_portfolio(n, seed):
 
     return policies
 
+# Step 4 - train_test_split
+def train_test_split(data, test_frac=0.25, seed=0):
+    # Get the total number of policy records.
+    n = len(next(iter(data.values())))
+
+    # Generate a reproducible random permutation of row indices.
+    rng = np.random.default_rng(seed)
+    perm = rng.permutation(n)
+
+    # Determine the number of test records.
+    n_test = int(round(test_frac * n))
+
+    # Select test indices from the first n_test entries.
+    test_idx = np.sort(perm[:n_test])
+
+    # Select training indices from the remaining entries.
+    train_idx = np.sort(perm[n_test:])
+
+    # Apply the same indices to every column in the dataset.
+    train = {
+        key: values[train_idx]
+        for key, values in data.items()
+    }
+
+    test = {
+        key: values[test_idx]
+        for key, values in data.items()
+    }
+
+    # Return the training and testing dictionaries.
+    return train, test
+
