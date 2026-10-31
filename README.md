@@ -12,6 +12,7 @@ python scaffold.py
 
 - [x] **1.** make_policies
 - [x] **2.** true_frequency
+- [x] **3.** simulate_claims
 
 ---
 

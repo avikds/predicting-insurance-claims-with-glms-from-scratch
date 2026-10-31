@@ -172,3 +172,39 @@ def true_frequency(policies):
     # Convert log frequency into annual claim frequency.
     return np.exp(log_rate)
 
+# Step 3 - simulate_claims
+def simulate_claims(policies, seed, frailty_shape=2.0):
+    # Initialize the seeded random number generator.
+    rng = np.random.default_rng(seed)
+
+    # Get the number of policies.
+    n = len(policies["Exposure"])
+
+    # Generate Gamma frailty values with mean 1
+    # and variance 1 / frailty_shape.
+    u = rng.gamma(
+        frailty_shape,
+        1.0 / frailty_shape,
+        size=n
+    )
+
+    # Calculate the expected claim count for each policy.
+    claim_rate = (
+        policies["Exposure"]
+        * true_frequency(policies)
+        * u
+    )
+
+    # Generate Poisson claim counts and return integer values.
+    return rng.poisson(claim_rate).astype(int)
+
+
+def make_portfolio(n, seed):
+    # Generate the motor insurance policies.
+    policies = make_policies(n, seed)
+
+    # Generate observed claim counts using a separate seed.
+    policies["ClaimNb"] = simulate_claims(policies, seed + 1)
+
+    return policies
+
