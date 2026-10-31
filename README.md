@@ -11,6 +11,7 @@ python scaffold.py
 ## Steps
 
 - [x] **1.** make_policies
+- [x] **2.** true_frequency
 
 ---
 

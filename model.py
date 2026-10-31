@@ -111,3 +111,64 @@ def make_policies(n, seed):
         "Region": region
     }
 
+# Step 2 - true_frequency
+BRAND_EFFECT = {
+    "B11": 0.10,
+    "B12": -0.15,
+    "B13": 0.05,
+    "B14": 0.10
+}
+
+REGION_EFFECT = {
+    "R11": 0.10,
+    "R24": -0.05,
+    "R52": -0.06,
+    "R53": -0.08,
+    "R82": 0.05,
+    "R93": 0.12
+}
+
+
+def true_frequency(policies):
+    # Convert integer columns to float before performing arithmetic.
+    bm = np.asarray(policies["BonusMalus"], dtype=float)
+    age = np.asarray(policies["DrivAge"], dtype=float)
+    veh_age = np.asarray(policies["VehAge"], dtype=float)
+    density = np.asarray(policies["Density"], dtype=float)
+    veh_power = np.asarray(policies["VehPower"], dtype=float)
+
+    # Extract categorical columns.
+    veh_gas = np.asarray(policies["VehGas"])
+    veh_brand = np.asarray(policies["VehBrand"])
+    region = np.asarray(policies["Region"])
+
+    # Retrieve brand and region effects.
+    # Categories not listed in the dictionaries have an effect of zero.
+    brand_effect = np.array(
+        [BRAND_EFFECT.get(brand, 0.0) for brand in veh_brand],
+        dtype=float
+    )
+
+    region_effect = np.array(
+        [REGION_EFFECT.get(reg, 0.0) for reg in region],
+        dtype=float
+    )
+
+    # Calculate the log of the hidden annual claim frequency.
+    log_rate = (
+        -2.6
+        + 1.6 * np.log(bm / 50.0)
+        + 0.9 * np.exp(-(age - 18.0) / 6.0)
+        + 0.4 * np.maximum(age - 70.0, 0.0) / 20.0
+        + 0.25 * (veh_age == 0).astype(float)
+        - 0.03 * np.minimum(veh_age, 15.0)
+        + 0.15 * (np.log(density) - 6.0)
+        + 0.08 * (veh_gas == "Regular").astype(float)
+        + 0.03 * (veh_power - 6.0)
+        + brand_effect
+        + region_effect
+    )
+
+    # Convert log frequency into annual claim frequency.
+    return np.exp(log_rate)
+
