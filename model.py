@@ -585,3 +585,47 @@ def predict(model, X):
     else:
         raise ValueError("Unsupported link function.")
 
+# Step 13 - fit_ridge
+def fit_ridge(X, y, sample_weight, alpha):
+    # Convert inputs into floating-point NumPy arrays.
+    X = np.asarray(X, dtype=float)
+    y = np.asarray(y, dtype=float).reshape(-1)
+    w = np.asarray(sample_weight, dtype=float).reshape(-1)
+
+    # Normalize sample weights so that they sum to one.
+    w = w / np.sum(w)
+
+    # Calculate weighted means of features and target.
+    x_bar = np.sum(w[:, None] * X, axis=0)
+    y_bar = np.sum(w * y)
+
+    # Center the feature matrix and target.
+    Xc = X - x_bar
+    yc = y - y_bar
+
+    # Number of features.
+    n_features = X.shape[1]
+
+    # Construct the weighted Ridge normal equations:
+    # (Xc.T @ diag(w) @ Xc + alpha * I) @ coef
+    #     = Xc.T @ (w * yc)
+    lhs = (
+        Xc.T @ (w[:, None] * Xc)
+        + alpha * np.eye(n_features)
+    )
+
+    rhs = Xc.T @ (w * yc)
+
+    # Solve the regularized normal equations.
+    coef = np.linalg.solve(lhs, rhs)
+
+    # Recover the unpenalized intercept.
+    intercept = y_bar - x_bar @ coef
+
+    # Return the fitted Ridge model.
+    return {
+        "intercept": float(intercept),
+        "coef": coef,
+        "link": "identity"
+    }
+
