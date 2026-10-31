@@ -20,6 +20,7 @@ python scaffold.py
 - [x] **8.** fit_preprocessor
 - [x] **9.** transform
 - [x] **10.** poisson_deviance
+- [x] **11.** evaluate
 
 ---
 

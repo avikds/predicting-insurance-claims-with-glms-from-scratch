@@ -483,3 +483,60 @@ def poisson_deviance(y, mu, sample_weight=None):
         np.sum(weights * unit_deviance) / weight_sum
     )
 
+# Step 11 - evaluate
+def evaluate(freq, pred, exposure):
+    # Convert inputs into floating-point NumPy arrays.
+    freq = np.asarray(freq, dtype=float)
+    pred = np.asarray(pred, dtype=float)
+    exposure = np.asarray(exposure, dtype=float)
+
+    # Calculate the total exposure.
+    total_exposure = np.sum(exposure)
+
+    # Calculate the differences between observed and predicted frequencies.
+    errors = freq - pred
+
+    # 1. Exposure-weighted mean squared error.
+    mse = float(
+        np.sum(exposure * errors**2) / total_exposure
+    )
+
+    # 2. Exposure-weighted mean absolute error.
+    mae = float(
+        np.sum(exposure * np.abs(errors)) / total_exposure
+    )
+
+    # 3. Calculate Poisson deviance only for positive predictions.
+    # Non-positive predicted frequencies are excluded because
+    # the Poisson deviance requires strictly positive predictions.
+    valid = pred > 0
+
+    if np.any(valid):
+        deviance = poisson_deviance(
+            freq[valid],
+            pred[valid],
+            sample_weight=exposure[valid]
+        )
+    else:
+        # Deviance is undefined when there are no valid predictions.
+        deviance = float("nan")
+
+    # 4. Count predictions that are zero or negative.
+    n_nonpositive = int(np.sum(pred <= 0))
+
+    # 5. Calculate the total predicted number of claims.
+    pred_claims = float(np.sum(pred * exposure))
+
+    # 6. Calculate the total observed number of claims.
+    obs_claims = float(np.sum(freq * exposure))
+
+    # Return all evaluation metrics.
+    return {
+        "mse": mse,
+        "mae": mae,
+        "deviance": float(deviance),
+        "n_nonpositive": n_nonpositive,
+        "pred_claims": pred_claims,
+        "obs_claims": obs_claims
+    }
+
