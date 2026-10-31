@@ -35,6 +35,7 @@ python scaffold.py
 - [x] **23.** fit_gamma_glm
 - [x] **24.** tweedie_deviance
 - [x] **25.** pure_premium_report
+- [x] **26.** insurance_report
 
 ---
 

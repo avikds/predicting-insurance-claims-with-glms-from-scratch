@@ -1381,3 +1381,159 @@ def pure_premium_report(train, test, freq_model, prep, alpha=1e-4, power=1.9):
         "gini": float(gini)
     }
 
+# Step 26 - insurance_report
+def insurance_report(n=100000, seed=0):
+    # 1. Generate the complete insurance portfolio.
+    data = make_portfolio(n, seed)
+
+    # Simulate total claim amounts.
+    data["ClaimAmount"] = simulate_claim_amounts(
+        data,
+        data["ClaimNb"],
+        seed + 2
+    )
+
+    # Summarize the entire portfolio.
+    summary = claims_summary(
+        data["ClaimNb"],
+        data["Exposure"]
+    )
+
+    # Split into training and test portfolios.
+    train, test = train_test_split(
+        data,
+        test_frac=0.25,
+        seed=seed
+    )
+
+    # 2. Fit and compare the three frequency models.
+    table, models, prep = compare_models(train, test)
+
+    # Transform the test portfolio.
+    X_te = transform(test, prep)
+
+    test_exposure = np.asarray(
+        test["Exposure"], dtype=float
+    )
+
+    test_claims = np.asarray(
+        test["ClaimNb"], dtype=float
+    )
+
+    # Calculate observed annual claim frequencies.
+    freq_te = test_claims / test_exposure
+
+    # 3. Calculate calibration curves and Gini indices.
+    calibration = {}
+    gini = {}
+
+    for name in ["dummy", "ridge", "poisson"]:
+        # Predict annual claim frequencies.
+        pred = predict(models[name], X_te)
+
+        # Calculate the 10-bin calibration curve.
+        mean_pred, mean_obs, _ = calibration_curve(
+            pred,
+            freq_te,
+            test_exposure,
+            n_bins=10
+        )
+
+        calibration[name] = (
+            np.round(mean_pred, 3).tolist(),
+            np.round(mean_obs, 3).tolist()
+        )
+
+        # Calculate the Gini index.
+        _, _, g = lorenz_gini(
+            pred,
+            test_claims,
+            test_exposure
+        )
+
+        gini[name] = round(float(g), 4)
+
+    # 4. Check the predicted claim-count distribution.
+    mu = (
+        predict(models["poisson"], X_te)
+        * test_exposure
+    )
+
+    counts_expected = np.round(
+        count_distribution(mu, 4),
+        1
+    ).tolist()
+
+    counts_observed = np.bincount(
+        test["ClaimNb"],
+        minlength=5
+    )[:5].tolist()
+
+    # Calculate Pearson dispersion.
+    dispersion = round(
+        pearson_dispersion(
+            test_claims,
+            mu,
+            X_te.shape[1] + 1
+        ),
+        3
+    )
+
+    # Number of accepted Newton iterations.
+    newton_iterations = (
+        len(models["poisson"]["history"]) - 1
+    )
+
+    # 5. Extract Poisson GLM rating relativities.
+    rating_relativities = {
+        column: relativities(
+            models["poisson"],
+            prep,
+            column
+        )
+        for column in ["DrivAge", "VehAge", "Area"]
+    }
+
+    # 6. Calculate the pure-premium report.
+    pure_report = pure_premium_report(
+        train,
+        test,
+        models["poisson"],
+        prep
+    )
+
+    pure_premium = {
+        key: round(float(value), 4)
+        for key, value in pure_report.items()
+        if isinstance(value, (float, np.floating))
+    }
+
+    # 7. Round model comparison metrics.
+    # IMPORTANT: Keep n_nonpositive as an integer.
+    rounded_table = {}
+
+    for name, metrics in table.items():
+        rounded_table[name] = {}
+
+        for metric, value in metrics.items():
+            if metric == "n_nonpositive":
+                rounded_table[name][metric] = int(value)
+            else:
+                rounded_table[name][metric] = round(
+                    float(value), 4
+                )
+
+    # 8. Return the complete insurance report.
+    return {
+        "summary": summary,
+        "table": rounded_table,
+        "calibration": calibration,
+        "gini": gini,
+        "counts_expected": counts_expected,
+        "counts_observed": counts_observed,
+        "dispersion": dispersion,
+        "newton_iterations": int(newton_iterations),
+        "relativities": rating_relativities,
+        "pure_premium": pure_premium
+    }
+
