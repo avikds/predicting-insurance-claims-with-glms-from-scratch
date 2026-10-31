@@ -729,3 +729,89 @@ def irls_step(params, X, counts, exposure, alpha):
     # Return the updated parameter vector.
     return new_params
 
+# Step 16 - fit_poisson_glm
+def fit_poisson_glm(X, counts, exposure, alpha, max_iter=25, tol=1e-10):
+    # Convert inputs into floating-point NumPy arrays.
+    X = np.asarray(X, dtype=float)
+    counts = np.asarray(counts, dtype=float)
+    exposure = np.asarray(exposure, dtype=float)
+
+    # Number of features.
+    p = X.shape[1]
+
+    # Initialize all coefficients to zero.
+    params = np.zeros(p + 1, dtype=float)
+
+    # Initialize the intercept using the logarithm of
+    # the portfolio claim frequency.
+    params[0] = np.log(
+        np.sum(counts) / np.sum(exposure)
+    )
+
+    # Evaluate the initial objective, gradient and Hessian.
+    obj, grad, hess = poisson_objective(
+        params, X, counts, exposure, alpha
+    )
+
+    # Store the objective value at every accepted iteration.
+    history = [obj]
+
+    # Perform damped Newton optimization.
+    for _ in range(max_iter):
+
+        # Calculate the Newton step.
+        step = np.linalg.solve(hess, grad)
+
+        # Calculate the Newton decrement.
+        decrement = 0.5 * (grad @ step)
+
+        # Stop when convergence is reached.
+        if decrement < tol:
+            break
+
+        # Begin with a full Newton step.
+        t = 1.0
+
+        # Calculate the candidate parameter vector.
+        candidate_params = params - t * step
+
+        # Evaluate the candidate objective, gradient and Hessian.
+        candidate_obj, candidate_grad, candidate_hess = (
+            poisson_objective(
+                candidate_params, X, counts, exposure, alpha
+            )
+        )
+
+        # Apply step halving while the objective increases.
+        while candidate_obj > obj and t > 1e-4:
+
+            # Reduce the step size by half.
+            t *= 0.5
+
+            # Recalculate the candidate parameters.
+            candidate_params = params - t * step
+
+            # Reevaluate the candidate solution.
+            candidate_obj, candidate_grad, candidate_hess = (
+                poisson_objective(
+                    candidate_params, X, counts, exposure, alpha
+                )
+            )
+
+        # Accept the last candidate solution.
+        params = candidate_params
+        obj = candidate_obj
+        grad = candidate_grad
+        hess = candidate_hess
+
+        # Record the accepted objective value.
+        history.append(obj)
+
+    # Return the fitted Poisson GLM.
+    return {
+        "intercept": float(params[0]),
+        "coef": params[1:],
+        "link": "log",
+        "history": history
+    }
+
