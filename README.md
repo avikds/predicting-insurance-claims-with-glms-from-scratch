@@ -26,6 +26,7 @@ python scaffold.py
 - [x] **14.** poisson_objective
 - [x] **15.** irls_step
 - [x] **16.** fit_poisson_glm
+- [x] **17.** relativities
 
 ---
 

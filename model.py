@@ -815,3 +815,45 @@ def fit_poisson_glm(X, counts, exposure, alpha, max_iter=25, tol=1e-10):
         "history": history
     }
 
+# Step 17 - relativities
+def relativities(model, prep, column):
+    # Check whether the requested column is categorical or binned.
+    if column not in CATEGORICAL and column not in BINNED:
+        raise KeyError(column)
+
+    # Initialize the starting coefficient position.
+    start = 0
+
+    # Reconstruct the exact feature-column layout used by transform().
+    all_columns = CATEGORICAL + BINNED
+
+    for col in all_columns:
+        if col in CATEGORICAL:
+            n_levels = len(prep["levels"][col])
+        else:
+            n_levels = len(prep["edges"][col]) + 1
+
+        if col == column:
+            break
+
+        start += n_levels
+
+    # Get the levels belonging to the requested feature.
+    if column in CATEGORICAL:
+        levels = prep["levels"][column]
+    else:
+        levels = list(range(len(prep["edges"][column]) + 1))
+
+    # Extract the corresponding coefficients.
+    coef = np.asarray(model["coef"], dtype=float)
+    column_coef = coef[start:start + len(levels)]
+
+    # Calculate relativities relative to the first level.
+    reference_coef = column_coef[0]
+
+    # Return a dictionary with relativities rounded to four decimals.
+    return {
+        level: float(np.round(np.exp(value - reference_coef), 4))
+        for level, value in zip(levels, column_coef)
+    }
+
