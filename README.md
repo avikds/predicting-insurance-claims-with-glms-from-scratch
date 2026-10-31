@@ -14,6 +14,7 @@ python scaffold.py
 - [x] **2.** true_frequency
 - [x] **3.** simulate_claims
 - [x] **4.** train_test_split
+- [x] **5.** claims_summary
 
 ---
 

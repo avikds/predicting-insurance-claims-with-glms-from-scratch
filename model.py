@@ -240,3 +240,46 @@ def train_test_split(data, test_frac=0.25, seed=0):
     # Return the training and testing dictionaries.
     return train, test
 
+# Step 5 - claims_summary
+def claims_summary(claim_nb, exposure):
+    # Convert inputs to NumPy arrays with appropriate data types.
+    claim_nb = np.asarray(claim_nb, dtype=int)
+    exposure = np.asarray(exposure, dtype=float)
+
+    # Calculate the total number of policies.
+    n_policies = len(claim_nb)
+
+    # Calculate the fraction of policies with zero claims.
+    frac_zero = (
+        round(float(np.mean(claim_nb == 0)), 4)
+        if n_policies > 0 else 0.0
+    )
+
+    # Calculate portfolio claim frequency:
+    # Total number of claims divided by total exposure.
+    total_exposure = float(np.sum(exposure))
+    frequency = (
+        round(float(np.sum(claim_nb)) / total_exposure, 4)
+        if total_exposure > 0 else 0.0
+    )
+
+    # Calculate the mean policy exposure.
+    mean_exposure = (
+        round(float(np.mean(exposure)), 4)
+        if n_policies > 0 else 0.0
+    )
+
+    # Calculate the claim-count histogram.
+    # Each element represents the number of policies
+    # with 0, 1, 2, ... claims, respectively.
+    histogram = np.bincount(claim_nb).tolist()
+
+    # Return the portfolio summary.
+    return {
+        "n_policies": int(n_policies),
+        "frac_zero": frac_zero,
+        "frequency": frequency,
+        "mean_exposure": mean_exposure,
+        "histogram": histogram
+    }
+
