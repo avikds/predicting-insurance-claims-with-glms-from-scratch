@@ -857,3 +857,69 @@ def relativities(model, prep, column):
         for level, value in zip(levels, column_coef)
     }
 
+# Step 18 - compare_models
+def compare_models(train, test, alpha_ridge=1e-6, alpha_glm=1e-6):
+    # 1. Fit the preprocessor using training data only.
+    prep = fit_preprocessor(train)
+
+    # Transform training and test datasets using the same preprocessor.
+    X_tr = transform(train, prep)
+    X_te = transform(test, prep)
+
+    # Extract training and test exposures.
+    exposure_tr = np.asarray(train["Exposure"], dtype=float)
+    exposure_te = np.asarray(test["Exposure"], dtype=float)
+
+    # 2. Calculate observed claim frequencies.
+    f_tr = (
+        np.asarray(train["ClaimNb"], dtype=float) / exposure_tr
+    )
+
+    f_te = (
+        np.asarray(test["ClaimNb"], dtype=float) / exposure_te
+    )
+
+    # Extract training claim counts.
+    counts_tr = np.asarray(train["ClaimNb"], dtype=float)
+
+    # 3. Fit the constant-frequency baseline.
+    dummy_model = fit_dummy(f_tr, exposure_tr)
+
+    # Fit weighted Ridge regression.
+    ridge_model = fit_ridge(
+        X_tr,
+        f_tr,
+        exposure_tr,
+        alpha_ridge
+    )
+
+    # Fit the Poisson GLM using claim counts and exposure.
+    poisson_model = fit_poisson_glm(
+        X_tr,
+        counts_tr,
+        exposure_tr,
+        alpha_glm
+    )
+
+    # Store all fitted models in the required order.
+    models = {
+        "dummy": dummy_model,
+        "ridge": ridge_model,
+        "poisson": poisson_model
+    }
+
+    # 4. Generate predicted annual claim frequencies.
+    predictions = {
+        name: predict(model, X_te)
+        for name, model in models.items()
+    }
+
+    # Evaluate each model on the held-out test portfolio.
+    table = {
+        name: evaluate(f_te, pred, exposure_te)
+        for name, pred in predictions.items()
+    }
+
+    # Return evaluation results, fitted models and preprocessor.
+    return table, models, prep
+

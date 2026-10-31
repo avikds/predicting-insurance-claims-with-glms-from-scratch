@@ -27,6 +27,7 @@ python scaffold.py
 - [x] **15.** irls_step
 - [x] **16.** fit_poisson_glm
 - [x] **17.** relativities
+- [x] **18.** compare_models
 
 ---
 
